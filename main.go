@@ -20,7 +20,7 @@ var (
 	srcnames []string
 	fail     error
 	tt       = time.Now().Format("20060102")
-	tt1      = time.Now().Format("200601020304")
+	tt1      = time.Now().Format("20060102150405")
 )
 
 func init() {
@@ -51,7 +51,7 @@ func main() {
 	dochange(srcnames, srcfiles, dstnames, dstfiles)
 
 	elapsed := time.Since(t).String() //Program execution time
-	write2stdlog("copy execution time: " + elapsed)
+	write2log("copy execution time: "+elapsed, tt, "std")
 	fmt.Println("copy execution time: " + elapsed + ",換檔完成，5秒後程式自動關閉......")
 	time.Sleep(duration) //waiting 5sec close
 }
@@ -65,47 +65,19 @@ func readinput() string {
 	return scanner.Text()
 }
 
-func write2errlog(a error) {
-	//tt := time.Now().Format("20060102")
-	filename, err := os.OpenFile("./log/"+tt+"_error.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func write2log(a, t, fn string) {
+	filename, err := os.OpenFile("./log/"+t+"_"+fn+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("file open fail: %v", err)
 	}
 	defer filename.Close()
-	log.SetOutput(filename)
-	log.Println(a)
-}
+	if fn == "bk" {
+		filename.WriteString(a + "\n")
+	} else {
+		log.SetOutput(filename)
+		log.Println(a)
+	}
 
-func write2cplog(a string) {
-	//tt := time.Now().Format("20060102")
-	filename, err := os.OpenFile("./log/"+tt+"_cp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("file open fail: %v", err)
-	}
-	defer filename.Close()
-	log.SetOutput(filename)
-	log.Println(a)
-}
-
-func write2bklog(a string) {
-	//tt := time.Now().Format("20060102")
-	filename, err := os.OpenFile("./log/"+tt+"_bk.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("file open fail: %v", err)
-	}
-	defer filename.Close()
-	log.SetOutput(filename)
-	log.Println(a)
-}
-
-func write2stdlog(a string) {
-	filename, err := os.OpenFile("./log/"+tt+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("file open fail: %v", err)
-	}
-	defer filename.Close()
-	log.SetOutput(filename)
-	log.Println(a)
 }
 
 // Copy the src file to dst. Any existing file will be overwritten and will not
@@ -174,14 +146,14 @@ func dochange(srcname, srcfile, dstname, dstfile []string) {
 			if srcnames[index] == v {
 				err := os.Rename(dstfile[i], dstfile[i]+"."+tt1)
 				if err != nil {
-					write2errlog(err)
+					write2log(err.Error(), tt, "error")
 				} else {
-					write2bklog(dstfile[i] + "." + tt1)
-					err := Copy(srcfile[index], dstfile[i])
+					write2log(dstfile[i]+"."+tt1, tt1, "bk")
+					err = Copy(srcfile[index], dstfile[i])
 					if err != nil {
-						write2errlog(err)
+						write2log(err.Error(), tt, "error")
 					} else {
-						write2cplog(dstfile[i])
+						write2log(dstfile[i], tt1, "cp")
 					}
 				}
 			}
@@ -190,7 +162,7 @@ func dochange(srcname, srcfile, dstname, dstfile []string) {
 }
 
 func stoppro(e error, t time.Duration, n int) {
-	write2errlog(e)
+	write2log(e.Error(), tt, "error")
 	fmt.Println("An exception occurs and the program closes automatically after 5 seconds:", e)
 	time.Sleep(t)
 	os.Exit(n)
